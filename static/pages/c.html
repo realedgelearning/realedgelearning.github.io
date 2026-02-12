@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Real Edge Learning</title>
+
+<style>
+/* ---------- BASE ---------- */
+body {
+  margin: 0;
+  font-family: Arial, Helvetica, sans-serif;
+  background: #f5f7fa;
+  color: #1a1a1a;
+}
+
+/* ---------- HEADER ---------- */
+.header {
+  background: #0e2b5c;
+  color: white;
+  padding: 16px 40px;
+  display: flex;
+  align-items: center;
+}
+
+.nav {
+  margin-left: 40px;
+  display: flex;
+  gap: 24px;
+}
+
+.nav div {
+  cursor: pointer;
+  opacity: 0.9;
+}
+
+.nav div:hover {
+  opacity: 1;
+}
+
+/* ---------- LAYOUT ---------- */
+.container {
+  padding: 24px 40px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.section {
+  margin-bottom: 36px;
+}
+
+.section h3 {
+  font-size: 14px;
+  letter-spacing: 1px;
+  color: #0e2b5c;
+  margin-bottom: 12px;
+}
+
+.grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+/* ---------- CARD ---------- */
+.card {
+  width: 300px;
+  position: relative;
+  border-radius: 10px;
+  overflow: hidden;
+  background: white;
+  box-shadow: 0 6px 14px rgba(0,0,0,0.12);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 18px rgba(0,0,0,0.18);
+}
+
+.card img {
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+  transition: filter 0.3s ease;
+}
+
+.card-body {
+  padding: 12px 14px;
+}
+
+/* subtle dim on hover */
+.card:hover img {
+  filter: brightness(60%);
+}
+
+/* ---------- OVERLAY ---------- */
+.overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 100%;
+
+  background: rgba(17, 24, 39, 0.65);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+
+  display: flex;
+  flex-direction: column;
+  padding: 12px;
+
+  color: white;
+  text-decoration: none;
+}
+
+.card:hover .overlay {
+  opacity: 1;
+}
+
+/* text at top area */
+.overlay p {
+  font-size: 12.5px;
+  line-height: 1.45;
+  margin: 0;
+
+  max-height: 96px;
+  overflow: hidden;
+}
+
+/* ---------- CARD TEXT ---------- */
+.title {
+  font-weight: bold;
+  margin-bottom: 4px;
+  font-size: 14px;
+}
+
+.duration {
+  color: #666;
+  font-size: 12.5px;
+}
+
+/* ---------- BUTTON ---------- */
+.btn {
+  background: #0e2b5c;
+  color: white;
+  padding: 7px 12px;
+  border: none;
+  border-radius: 6px;
+  font-size: 12.5px;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.btn:hover {
+  background: #0a2045;
+}
+
+/* details section */
+.details {
+  margin-top: 40px;
+  background: white;
+  padding: 16px;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="header">
+  <b>Real Edge Learning</b>
+
+  <div class="nav">
+    <div>For Individuals</div>
+    <div>For Corporate</div>
+    <div>About us</div>
+  </div>
+</div>
+
+<div class="container">
+
+<!-- 3D PRINTING -->
+<div class="section">
+<h3>3D PRINTING</h3>
+
+<div class="grid">
+
+<div class="card">
+
+  <img src="./static/course01_3D-Printing.jpg" alt="3D Printing">
+
+  <div class="card-body">
+    <div class="title">Introduction to 3D Printing</div>
+    <div class="duration">50 hours</div>
+  </div>
+
+  <a class="overlay" href="#">
+    <p>
+      Master the fundamentals of additive manufacturing,  
+      materials, slicing software and creating your first  
+      printable models.
+    </p>
+  </a>
+
+</div>
+
+</div>
+</div>
+
+
+<!-- DETAILS -->
+<div class="details">
+
+<h2>Course Details Example</h2>
+
+<b>Introduction to 3D Printing</b>
+
+<p>
+Complete guide to 3D printing technologies, slicer configuration,  
+material selection and hands-on projects that result in real printable objects.
+</p>
+
+<h4>Learning objectives</h4>
+<ul>
+  <li>Understand how FDM and resin printers work</li>
+  <li>Create models ready for printing</li>
+  <li>Operate slicing software</li>
+</ul>
+
+<h4>Modules</h4>
+<ul>
+  <li>Basics – What is 3D printing, Materials</li>
+  <li>Design – Modelling for print</li>
+  <li>Practice – Print and troubleshoot</li>
+</ul>
+
+<button class="btn">Start learning..</button>
+
+</div>
+
+</div>
+</body>
+</html>
