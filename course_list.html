@@ -334,7 +334,7 @@
       /* Buttons and touch targets */
       .btn,
       .learn-more,
-      .start-btn {
+      .enroll-btn {
         padding: 10px 14px;
         min-height: 44px;
         min-width: 44px;
@@ -407,6 +407,42 @@
         max-height: calc(90vh - 160px);
         overflow: auto;
         scrollbar-gutter: stable;
+      }
+
+      /* Modal two-column content (left: audience & objectives, right: modules) */
+      .modal-sections {
+        display: flex;
+        gap: 24px;
+        align-items: flex-enroll;
+        margin-top: 14px;
+      }
+
+      .modal-sections-left,
+      .modal-sections-right {
+        width: 50%;
+        box-sizing: border-box;
+      }
+
+      .modal-sections-right {
+        background: #fbfcfd;
+        border: 1px solid rgba(14, 43, 92, 0.04);
+        padding: 12px;
+        border-radius: 8px;
+      }
+
+      .modal-sections .section-title {
+        margin: 6px 0 10px;
+        font-size: 15px;
+        color: #0e2b5c;
+      }
+
+      @media (max-width: 799px) {
+        .modal-sections {
+          flex-direction: column;
+        }
+        .modal-sections-right {
+          width: 100%;
+        }
       }
 
       .modal-close {
@@ -520,7 +556,7 @@
         clear: both;
       }
 
-      .start-btn {
+      .enroll-btn {
         background: #7fc66a;
         border: 1px solid #2f6b2f;
         padding: 12px 26px;
@@ -581,7 +617,7 @@
           <!-- populated by JS -->
         </div>
         <div class="course-footer">
-          <button class="start-btn">Start Now</button>
+          <button class="enroll-btn">Enroll now</button>
           <div class="heart">♡</div>
         </div>
       </div>
@@ -593,6 +629,7 @@
         const content = document.getElementById('course-modal-content');
         const backdrop = modal.querySelector('.modal-backdrop');
         const closeBtn = modal.querySelector('.modal-close');
+        const modalEnrollBtn = modal.querySelector('.enroll-btn');
         let lastFocus = null;
         let currentCard = null;
         let modalPushed = false; // whether we pushed history for the open modal
@@ -696,16 +733,45 @@
 
           const titleId = 'course-title-' + id;
           content.innerHTML = `\
+          <div style="min-height: 278px">\
 <img src="${img}" class="course-image" alt="${title}">\
 \
 <h2 id="${titleId}" class="course-title">${title}</h2>\
 <div class="course-duration">${duration}</div>\
-<div class="course-desc">${desc}<br/><br/>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</div>\
-<div class="section-title">Target Audience: <span style="font-weight:normal">Someone who is aspiring to become a:</span></div>\
-<ul class="course-list"><li>Category 1</li><li>Category 2</li><li>Category 3</li></ul>\
-<div class="section-title">Learning Objectives: <span style="font-weight:normal">At the end of this course, you will be able to:</span></div>\
-<ul class="course-list"><li>Objective 1</li><li>Objective 2</li><li>Objective 3</li></ul>\
-<div class="clearfix"></div>`;
+<div class="course-desc">${desc}</div>\
+          </div>\
+\
+<div class="modal-sections">\
+  <div class="modal-sections-left">\
+    <div class="section">\
+      <div class="section-title">Target Audience</div>\
+      <ul class="course-list">\
+        <li>Beginners wanting hands-on practice</li>\
+        <li>Engineers exploring applied workflows</li>\
+        <li>Students building portfolio projects</li>\
+      </ul>\
+    </div>\
+\
+    <div class="section">\
+      <div class="section-title">Learning Objectives</div>\
+      <ul class="course-list">\
+        <li>Understand core concepts and terms</li>\
+        <li>Build and evaluate practical projects</li>\
+        <li>Apply tools and workflows with confidence</li>\
+      </ul>\
+    </div>\
+  </div>\
+\
+  <aside class="modal-sections-right" aria-label="Course contents">\
+    <div class="section-title">Course Contents</div>\
+    <ol class="course-list">\
+      <li>Module 1 — Introduction & setup</li>\
+      <li>Module 2 — Core techniques</li>\
+      <li>Module 3 — Project workshop</li>\
+      <li>Module 4 — Next steps</li>\
+    </ol>\
+  </aside>\
+</div>`;
 
           // set aria-labelledby on modal panel
           const panel = modal.querySelector('.modal-panel');
@@ -757,16 +823,16 @@
 
         // touch: swipe down to close on mobile
         (function addSwipeToClose() {
-          let startY = 0,
+          let enrollY = 0,
             currentY = 0,
             touching = false;
           const panel = modal.querySelector('.modal-panel');
           if (!panel) return;
           panel.addEventListener(
-            'touchstart',
+            'touchenroll',
             (ev) => {
               if (ev.touches.length !== 1) return;
-              startY = ev.touches[0].clientY;
+              enrollY = ev.touches[0].clientY;
               touching = true;
             },
             { passive: true },
@@ -782,9 +848,9 @@
           panel.addEventListener('touchend', () => {
             if (!touching) return;
             touching = false;
-            const delta = currentY - startY;
+            const delta = currentY - enrollY;
             if (delta > 80) closeModal();
-            startY = currentY = 0;
+            enrollY = currentY = 0;
           });
         })();
 
@@ -813,6 +879,44 @@
         // close interactions
         backdrop.addEventListener('click', closeModal);
         closeBtn.addEventListener('click', closeModal);
+
+        // enroll: save selected course and navigate to course_details.html
+        if (modalEnrollBtn) {
+          modalEnrollBtn.addEventListener('click', function () {
+            // prefer data from origin card when available
+            let title = '';
+            let duration = '';
+            let img = '';
+            let desc = '';
+            let id = '';
+
+            if (currentCard) {
+              title = currentCard.querySelector('.title')?.textContent || '';
+              duration =
+                currentCard.querySelector('.duration')?.textContent || '';
+              img = currentCard.querySelector('img')?.getAttribute('src') || '';
+              desc =
+                currentCard.querySelector('.hover-box p')?.textContent || '';
+              id = currentCard.dataset.courseId || slugify(title);
+            } else {
+              title = modal.querySelector('.course-title')?.textContent || '';
+              duration =
+                modal.querySelector('.course-duration')?.textContent || '';
+              img =
+                modal.querySelector('.course-image')?.getAttribute('src') || '';
+              desc = modal.querySelector('.course-desc')?.textContent || '';
+              id = slugify(title || 'course');
+            }
+
+            // prefer local details page for this static mockup; keep sessionStorage for hydration
+            const params = encodeURIComponent(id || slugify(title || 'course'));
+            try {
+              const payload = { id, title, duration, img, desc };
+              sessionStorage.setItem('selectedCourse', JSON.stringify(payload));
+            } catch (e) {}
+            window.location.href = 'course_details.html?course=' + params;
+          });
+        }
         window.addEventListener('keydown', function (e) {
           if (e.key === 'Escape') closeModal();
         });
