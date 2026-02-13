@@ -413,7 +413,7 @@
       .modal-sections {
         display: flex;
         gap: 24px;
-        align-items: flex-enroll;
+        align-items: flex-start;
         margin-top: 14px;
       }
 
@@ -567,6 +567,18 @@
       .heart {
         font-size: 26px;
         cursor: pointer;
+        color: #1a1a1a;
+        user-select: none;
+        transition:
+          color 0.18s ease,
+          transform 0.12s ease;
+        line-height: 1;
+      }
+
+      .heart.liked {
+        color: #e74c3c;
+        transform: scale(1.06);
+        text-shadow: 0 1px 0 rgba(0, 0, 0, 0.12);
       }
 
       /* Mobile: full-screen sheet */
@@ -659,6 +671,11 @@
           modal.setAttribute('aria-hidden', 'false');
           modal.classList.add('open');
           document.body.style.overflow = 'hidden';
+          // ensure footer is visible when opening modal
+          try {
+            const footerEl = modal.querySelector('.course-footer');
+            if (footerEl) footerEl.style.display = '';
+          } catch (e) {}
           closeBtn.focus();
 
           if (opts.push) {
@@ -693,6 +710,11 @@
             document.body.style.paddingRight = savedBodyPaddingRight || '';
           } catch (e) {}
           if (lastFocus) lastFocus.focus();
+          // restore footer display when modal closes
+          try {
+            const footerEl = modal.querySelector('.course-footer');
+            if (footerEl) footerEl.style.display = '';
+          } catch (e) {}
           // cleanup aria-describedby on origin card
           if (currentCard) {
             currentCard.removeAttribute('aria-describedby');
@@ -823,16 +845,16 @@
 
         // touch: swipe down to close on mobile
         (function addSwipeToClose() {
-          let enrollY = 0,
+          let startY = 0,
             currentY = 0,
             touching = false;
           const panel = modal.querySelector('.modal-panel');
           if (!panel) return;
           panel.addEventListener(
-            'touchenroll',
+            'touchstart',
             (ev) => {
               if (ev.touches.length !== 1) return;
-              enrollY = ev.touches[0].clientY;
+              startY = ev.touches[0].clientY;
               touching = true;
             },
             { passive: true },
@@ -848,9 +870,9 @@
           panel.addEventListener('touchend', () => {
             if (!touching) return;
             touching = false;
-            const delta = currentY - enrollY;
+            const delta = currentY - startY;
             if (delta > 80) closeModal();
-            enrollY = currentY = 0;
+            startY = currentY = 0;
           });
         })();
 
@@ -883,6 +905,83 @@
         // enroll: save selected course and navigate to course_details.html
         if (modalEnrollBtn) {
           modalEnrollBtn.addEventListener('click', function () {
+            // If the modal heart is not liked, show only the text "login" in the modal
+            const modalHeart = modal.querySelector('.heart');
+            if (modalHeart && !modalHeart.classList.contains('liked')) {
+              // replace content with a simple login prompt (clickable image)
+              content.innerHTML = `
+                <div class="empty" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;background: rgba(227, 228, 232, 1);">
+                  <img id="login-img" src="./static/img/login_.png" alt="login" style="max-width:100%;max-height:420px;cursor:pointer;border-radius:8px;" />
+                  <div style="margin-top:12px;color:#0e2b5c;font-weight:600;">login</div>
+                </div>
+              `;
+              const footer = modal.querySelector('.course-footer');
+              if (footer) footer.style.display = 'none';
+
+              // attach click handler to login image to route to course_details (hydrate via sessionStorage)
+              const loginImg = content.querySelector('#login-img');
+              if (loginImg) {
+                loginImg.setAttribute('role', 'button');
+                loginImg.setAttribute('tabindex', '0');
+                loginImg.addEventListener('click', function () {
+                  // collect course data same as enroll flow
+                  let title = '';
+                  let duration = '';
+                  let img = '';
+                  let desc = '';
+                  let id = '';
+
+                  if (currentCard) {
+                    title =
+                      currentCard.querySelector('.title')?.textContent || '';
+                    duration =
+                      currentCard.querySelector('.duration')?.textContent || '';
+                    img =
+                      currentCard.querySelector('img')?.getAttribute('src') ||
+                      '';
+                    desc =
+                      currentCard.querySelector('.hover-box p')?.textContent ||
+                      '';
+                    id = currentCard.dataset.courseId || slugify(title);
+                  } else {
+                    title =
+                      modal.querySelector('.course-title')?.textContent || '';
+                    duration =
+                      modal.querySelector('.course-duration')?.textContent ||
+                      '';
+                    img =
+                      modal
+                        .querySelector('.course-image')
+                        ?.getAttribute('src') || '';
+                    desc =
+                      modal.querySelector('.course-desc')?.textContent || '';
+                    id = slugify(title || 'course');
+                  }
+
+                  try {
+                    const payload = { id, title, duration, img, desc };
+                    sessionStorage.setItem(
+                      'selectedCourse',
+                      JSON.stringify(payload),
+                    );
+                  } catch (e) {}
+                  const params = encodeURIComponent(
+                    id || slugify(title || 'course'),
+                  );
+                  window.location.href = 'course_details.html?course=' + params;
+                });
+
+                // allow keyboard activation
+                loginImg.addEventListener('keydown', function (e) {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    this.click();
+                  }
+                });
+              }
+
+              return;
+            }
             // prefer data from origin card when available
             let title = '';
             let duration = '';
@@ -945,6 +1044,33 @@
             first.focus();
           }
         });
+
+        // initialize hearts: clickable & keyboard accessible toggle
+        function initHearts() {
+          document.querySelectorAll('.heart').forEach((h) => {
+            h.setAttribute('role', 'button');
+            h.setAttribute('tabindex', '0');
+            const isLiked = h.classList.contains('liked');
+            h.setAttribute('aria-pressed', isLiked ? 'true' : 'false');
+            // normalize display
+            h.textContent = isLiked ? '♥' : '♡';
+
+            h.addEventListener('click', function () {
+              const liked = this.classList.toggle('liked');
+              this.textContent = liked ? '♥' : '♡';
+              this.setAttribute('aria-pressed', liked ? 'true' : 'false');
+            });
+
+            h.addEventListener('keydown', function (e) {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                this.click();
+              }
+            });
+          });
+        }
+
+        initHearts();
       })();
     </script>
 
