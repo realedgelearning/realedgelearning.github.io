@@ -595,6 +595,9 @@
         const closeBtn = modal.querySelector('.modal-close');
         let lastFocus = null;
         let currentCard = null;
+        let modalPushed = false; // whether we pushed history for the open modal
+        let modalPrevUrl = null; // previous url before push
+        let openedFromDirect = false; // whether modal was opened from a direct deep-link
 
         function slugify(s) {
           return s
@@ -603,15 +606,33 @@
             .replace(/(^-|-$)/g, '');
         }
 
-        function openModal(id) {
+        function openModal(id, opts = { push: true }) {
           lastFocus = document.activeElement;
           modal.setAttribute('aria-hidden', 'false');
           modal.classList.add('open');
           document.body.style.overflow = 'hidden';
           closeBtn.focus();
-          try {
-            history.pushState({ modal: id }, '', '/courses/' + id);
-          } catch (e) {}
+
+          if (opts.push) {
+            // remember previous URL so we can restore it on close if needed
+            modalPrevUrl = location.pathname + location.search;
+            try {
+              history.pushState({ modal: id }, '', '/courses/' + id);
+              modalPushed = true;
+              openedFromDirect = false;
+            } catch (e) {
+              modalPushed = false;
+            }
+          } else {
+            // opened via direct link (no push)
+            openedFromDirect = true;
+            modalPushed = false;
+            // compute a sensible fallback URL to restore when closing
+            modalPrevUrl = (location.pathname || '/').replace(
+              /\/courses\/[^\/]+$/,
+              '/course_list.html',
+            );
+          }
         }
 
         function closeModal() {
@@ -625,6 +646,61 @@
             currentCard.removeAttribute('aria-describedby');
             currentCard = null;
           }
+
+          // Restore URL / history so the address bar shows course_list.html
+          if (modalPushed) {
+            // we pushed a state when opening; go back to restore previous URL
+            modalPushed = false;
+            try {
+              history.back();
+            } catch (e) {}
+          } else {
+            // opened from a direct link (or push not available) — replace the URL
+            try {
+              const restore =
+                modalPrevUrl ||
+                location.pathname.replace(
+                  /\/courses\/[^\/]+$/,
+                  '/course_list.html',
+                );
+              history.replaceState(null, '', restore);
+            } catch (e) {}
+          }
+
+          modalPrevUrl = null;
+          openedFromDirect = false;
+        }
+
+        // populate content from a card node and show modal
+        function showCourseFromCard(card, opts = { push: true }) {
+          const title = card.querySelector('.title')?.textContent || 'Course';
+          const duration = card.querySelector('.duration')?.textContent || '';
+          const img = card.querySelector('img')?.getAttribute('src') || '';
+          const desc = card.querySelector('.hover-box p')?.textContent || '';
+          const id = card.dataset.courseId || slugify(title);
+
+          const titleId = 'course-title-' + id;
+          content.innerHTML = `\
+<img src="${img}" class="course-image" alt="${title}">\
+\
+<h2 id="${titleId}" class="course-title">${title}</h2>\
+<div class="course-duration">${duration}</div>\
+<div class="course-desc">${desc}<br/><br/>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</div>\
+<div class="section-title">Target Audience: <span style="font-weight:normal">Someone who is aspiring to become a:</span></div>\
+<ul class="course-list"><li>Category 1</li><li>Category 2</li><li>Category 3</li></ul>\
+<div class="section-title">Learning Objectives: <span style="font-weight:normal">At the end of this course, you will be able to:</span></div>\
+<ul class="course-list"><li>Objective 1</li><li>Objective 2</li><li>Objective 3</li></ul>\
+<div class="clearfix"></div>`;
+
+          // set aria-labelledby on modal panel
+          const panel = modal.querySelector('.modal-panel');
+          if (panel) panel.setAttribute('aria-labelledby', titleId);
+
+          // set aria-describedby on origin card to link for screen readers
+          card.setAttribute('aria-describedby', titleId);
+          currentCard = card;
+
+          openModal(id, { push: !!opts.push });
         }
 
         // helper: ensure cards have data-course-id and add CTA
@@ -661,35 +737,7 @@
           if (!card) return;
           if (modal.contains(e.target)) return;
 
-          // gather values
-          const title = card.querySelector('.title')?.textContent || 'Course';
-          const duration = card.querySelector('.duration')?.textContent || '';
-          const img = card.querySelector('img')?.getAttribute('src') || '';
-          const desc = card.querySelector('.hover-box p')?.textContent || '';
-          const id = card.dataset.courseId || slugify(title);
-
-          const titleId = 'course-title-' + id;
-          content.innerHTML = `\
-<img src="${img}" class="course-image" alt="${title}">\
-
-<h2 id="${titleId}" class="course-title">${title}</h2>\
-<div class="course-duration">${duration}</div>\
-<div class="course-desc">${desc}<br/><br/>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</div>\
-<div class="section-title">Target Audience: <span style="font-weight:normal">Someone who is aspiring to become a:</span></div>\
-<ul class="course-list"><li>Category 1</li><li>Category 2</li><li>Category 3</li></ul>\
-<div class="section-title">Learning Objectives: <span style="font-weight:normal">At the end of this course, you will be able to:</span></div>\
-<ul class="course-list"><li>Objective 1</li><li>Objective 2</li><li>Objective 3</li></ul>\
-<div class="clearfix"></div>`;
-
-          // set aria-labelledby on modal panel
-          const panel = modal.querySelector('.modal-panel');
-          if (panel) panel.setAttribute('aria-labelledby', titleId);
-
-          // set aria-describedby on origin card to link for screen readers
-          card.setAttribute('aria-describedby', titleId);
-          currentCard = card;
-
-          openModal(id);
+          showCourseFromCard(card, { push: true });
         });
 
         // touch: swipe down to close on mobile
@@ -728,6 +776,25 @@
         // initialize
         initCards();
         initImages();
+
+        // deep-link: open modal on load if pathname matches /courses/:id
+        (function openFromPath() {
+          const m = location.pathname.match(/^\/courses\/([^\/]+)/);
+          if (!m) return;
+          const id = m[1];
+          const card = document.querySelector(`[data-course-id="${id}"]`);
+          if (card) {
+            // open without pushing a new history entry
+            showCourseFromCard(card, { push: false });
+          } else {
+            // no matching card found; set a sensible restore URL
+            openedFromDirect = true;
+            modalPrevUrl = location.pathname.replace(
+              /\/courses\/[^\/]+$/,
+              '/course_list.html',
+            );
+          }
+        })();
         // close interactions
         backdrop.addEventListener('click', closeModal);
         closeBtn.addEventListener('click', closeModal);
