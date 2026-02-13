@@ -617,7 +617,7 @@
             // remember previous URL so we can restore it on close if needed
             modalPrevUrl = location.pathname + location.search;
             try {
-              history.pushState({ modal: id }, '', '/course_list.html');
+              history.pushState({ modal: id }, '', '/courses/' + id);
               modalPushed = true;
               openedFromDirect = false;
             } catch (e) {
@@ -737,7 +737,7 @@
           if (!card) return;
           if (modal.contains(e.target)) return;
 
-          showCourseFromCard(card, { push: true });
+          showCourseFromCard(card, { push: false });
         });
 
         // touch: swipe down to close on mobile
