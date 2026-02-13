@@ -598,6 +598,7 @@
         let modalPushed = false; // whether we pushed history for the open modal
         let modalPrevUrl = null; // previous url before push
         let openedFromDirect = false; // whether modal was opened from a direct deep-link
+        let savedBodyPaddingRight = '';
 
         function slugify(s) {
           return s
@@ -608,6 +609,16 @@
 
         function openModal(id, opts = { push: true }) {
           lastFocus = document.activeElement;
+          // add compensation for scrollbar removal to prevent layout shift
+          try {
+            savedBodyPaddingRight = document.body.style.paddingRight || '';
+            const sbw =
+              window.innerWidth - document.documentElement.clientWidth;
+            if (sbw > 0) document.body.style.paddingRight = sbw + 'px';
+          } catch (e) {
+            savedBodyPaddingRight = document.body.style.paddingRight || '';
+          }
+
           modal.setAttribute('aria-hidden', 'false');
           modal.classList.add('open');
           document.body.style.overflow = 'hidden';
@@ -639,7 +650,11 @@
           if (!modal.classList.contains('open')) return;
           modal.setAttribute('aria-hidden', 'true');
           modal.classList.remove('open');
-          document.body.style.overflow = '';
+          // restore body scroll and padding to avoid layout shift
+          try {
+            document.body.style.overflow = '';
+            document.body.style.paddingRight = savedBodyPaddingRight || '';
+          } catch (e) {}
           if (lastFocus) lastFocus.focus();
           // cleanup aria-describedby on origin card
           if (currentCard) {
